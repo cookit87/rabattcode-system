@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rabattcode-Prüfsystem</title>
+  <style>
+    body {
+      background-color: #f3f4f6;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      font-family: Arial, sans-serif;
+    }
+    .container {
+      background-color: white;
+      padding: 2rem;
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      max-width: 400px;
+      width: 100%;
+    }
+    h1 {
+      font-size: 1.5rem;
+      font-weight: bold;
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+    .input-group {
+      margin-bottom: 1rem;
+    }
+    input {
+      width: 100%;
+      padding: 0.5rem;
+      border: 1px solid #d1d5db;
+      border-radius: 0.25rem;
+      font-size: 1rem;
+    }
+    input:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+    }
+    button {
+      width: 100%;
+      background-color: #3b82f6;
+      color: white;
+      padding: 0.5rem;
+      border: none;
+      border-radius: 0.25rem;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #2563eb;
+    }
+    .result {
+      margin-top: 1rem;
+      padding: 0.5rem;
+      text-align: center;
+      border-radius: 0.25rem;
+      display: none;
+    }
+    .result.success {
+      background-color: #d1fae5;
+      color: #065f46;
+    }
+    .result.error {
+      background-color: #fee2e2;
+      color: #991b1b;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Rabattcode-Prüfung</h1>
+    <div class="input-group">
+      <input
+        type="text"
+        id="discountCode"
+        placeholder="Geben Sie den Rabattcode ein"
+      />
+    </div>
+    <button onclick="validateCode()">
+      Rabattcode prüfen
+    </button>
+    <div id="result" class="result"></div>
+  </div>
+
+  <script>
+    // 调试：确认脚本开始
+    console.log('Skript geladen: Rabattcode-Prüfsystem startet...');
+
+    try {
+      // 生成500个12位折扣码
+      window.discountCodes = [];
+      function generateDiscountCodes() {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        const codes = new Set();
+        while (codes.size < 500) {
+          let code = '';
+          for (let i = 0; i < 12; i++) {
+            code += chars.charAt(Math.floor(Math.random() * chars.length));
+          }
+          codes.add(code);
+        }
+        window.discountCodes = Array.from(codes).map(code => ({ code, used: false }));
+        console.log('Rabattcodes generiert:', window.discountCodes);
+      }
+
+      // 验证折扣码
+      function validateCode() {
+        try {
+          const input = document.getElementById('discountCode').value.trim().toUpperCase();
+          const resultDiv = document.getElementById('result');
+          const codeEntry = window.discountCodes.find(entry => entry.code === input);
+
+          resultDiv.style.display = 'block';
+          resultDiv.classList.remove('success', 'error');
+          if (!codeEntry) {
+            resultDiv.classList.add('error');
+            resultDiv.textContent = 'Falscher Rabattcode';
+          } else if (codeEntry.used) {
+            resultDiv.classList.add('error');
+            resultDiv.textContent = 'Der Rabattcode wurde bereits verwendet';
+          } else {
+            resultDiv.classList.add('success');
+            resultDiv.textContent = 'Success';
+            codeEntry.used = true;
+          }
+          document.getElementById('discountCode').value = '';
+        } catch (error) {
+          console.error('Fehler bei der Validierung:', error);
+        }
+      }
+
+      // 初始化折扣码
+      generateDiscountCodes();
+
+      // 支持回车键验证
+      document.getElementById('discountCode').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          validateCode();
+        }
+      });
+
+      // 调试：确认初始化完成
+      console.log('Initialisierung abgeschlossen. Testen Sie mit console.log(window.discountCodes);');
+    } catch (error) {
+      console.error('Skriptfehler:', error);
+    }
+  </script>
+</body>
+</html>
