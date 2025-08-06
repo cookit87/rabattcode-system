@@ -78,6 +78,12 @@
       background-color: #fee2e2;
       color: #991b1b;
     }
+    .remaining {
+      margin-top: 1rem;
+      text-align: center;
+      font-size: 1rem;
+      color: #374151;
+    }
   </style>
 </head>
 <body>
@@ -97,6 +103,7 @@
       Rabattcodes exportieren
     </button>
     <div id="result" class="result"></div>
+    <div id="remaining" class="remaining"></div>
   </div>
 
   <script>
@@ -104,7 +111,7 @@
     console.log('Skript geladen: Rabattcode-Prüfsystem startet...');
 
     try {
-      // 生成100个12位折扣码
+      // 初始化折扣码
       window.discountCodes = [];
       function generateDiscountCodes() {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -117,7 +124,28 @@
           codes.add(code);
         }
         window.discountCodes = Array.from(codes).map(code => ({ code, used: false }));
-        console.log('Rabattcodes generiert:', window.discountCodes);
+        // 保存到LocalStorage
+        localStorage.setItem('discountCodes', JSON.stringify(window.discountCodes));
+        console.log('Neue Rabattcodes generiert und gespeichert:', window.discountCodes);
+      }
+
+      // 加载折扣码
+      function loadDiscountCodes() {
+        const savedCodes = localStorage.getItem('discountCodes');
+        if (savedCodes) {
+          window.discountCodes = JSON.parse(savedCodes);
+          console.log('Rabattcodes aus LocalStorage geladen:', window.discountCodes);
+        } else {
+          generateDiscountCodes();
+        }
+        updateRemaining();
+      }
+
+      // 更新剩余码数量
+      function updateRemaining() {
+        const remaining = window.discountCodes.filter(entry => !entry.used).length;
+        document.getElementById('remaining').textContent = `Verbleibende Rabattcodes: ${remaining}`;
+        console.log(`Verbleibende Rabattcodes: ${remaining}`);
       }
 
       // 验证折扣码
@@ -139,9 +167,9 @@
             resultDiv.classList.add('success');
             resultDiv.textContent = 'Success';
             codeEntry.used = true;
-            // 计算剩余可用码
-            const remaining = window.discountCodes.filter(entry => !entry.used).length;
-            console.log(`Verbleibende Rabattcodes: ${remaining}`);
+            // 更新LocalStorage
+            localStorage.setItem('discountCodes', JSON.stringify(window.discountCodes));
+            updateRemaining();
           }
           document.getElementById('discountCode').value = '';
         } catch (error) {
@@ -167,8 +195,8 @@
         }
       }
 
-      // 初始化折扣码
-      generateDiscountCodes();
+      // 初始化：加载或生成折扣码
+      loadDiscountCodes();
 
       // 支持回车键验证
       document.getElementById('discountCode').addEventListener('keypress', function(e) {
