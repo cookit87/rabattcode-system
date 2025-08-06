@@ -52,9 +52,16 @@
       border-radius: 0.25rem;
       font-size: 1rem;
       cursor: pointer;
+      margin-bottom: 0.5rem;
     }
     button:hover {
       background-color: #2563eb;
+    }
+    button.export {
+      background-color: #6b7280;
+    }
+    button.export:hover {
+      background-color: #4b5563;
     }
     .result {
       margin-top: 1rem;
@@ -86,6 +93,9 @@
     <button onclick="validateCode()">
       Rabattcode prüfen
     </button>
+    <button class="export" onclick="exportCodes()">
+      Rabattcodes exportieren
+    </button>
     <div id="result" class="result"></div>
   </div>
 
@@ -94,12 +104,12 @@
     console.log('Skript geladen: Rabattcode-Prüfsystem startet...');
 
     try {
-      // 生成500个12位折扣码
+      // 生成100个12位折扣码
       window.discountCodes = [];
       function generateDiscountCodes() {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
         const codes = new Set();
-        while (codes.size < 500) {
+        while (codes.size < 100) {
           let code = '';
           for (let i = 0; i < 12; i++) {
             code += chars.charAt(Math.floor(Math.random() * chars.length));
@@ -129,10 +139,31 @@
             resultDiv.classList.add('success');
             resultDiv.textContent = 'Success';
             codeEntry.used = true;
+            // 计算剩余可用码
+            const remaining = window.discountCodes.filter(entry => !entry.used).length;
+            console.log(`Verbleibende Rabattcodes: ${remaining}`);
           }
           document.getElementById('discountCode').value = '';
         } catch (error) {
           console.error('Fehler bei der Validierung:', error);
+        }
+      }
+
+      // 导出折扣码为CSV
+      function exportCodes() {
+        try {
+          const csvContent = "data:text/csv;charset=utf-8,Rabattcode,Verwendet\n" +
+            window.discountCodes.map(entry => `"${entry.code}",${entry.used}`).join("\n");
+          const encodedUri = encodeURI(csvContent);
+          const link = document.createElement("a");
+          link.setAttribute("href", encodedUri);
+          link.setAttribute("download", "rabattcodes.csv");
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          console.log('Rabattcodes exportiert als rabattcodes.csv');
+        } catch (error) {
+          console.error('Fehler beim Exportieren:', error);
         }
       }
 
