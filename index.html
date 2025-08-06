@@ -57,10 +57,10 @@
     button:hover {
       background-color: #2563eb;
     }
-    button.export {
+    button.export, button.import {
       background-color: #6b7280;
     }
-    button.export:hover {
+    button.export:hover, button.import:hover {
       background-color: #4b5563;
     }
     .result {
@@ -102,6 +102,16 @@
     <button class="export" onclick="exportCodes()">
       Rabattcodes exportieren
     </button>
+    <button class="import" onclick="document.getElementById('importFile').click()">
+      Rabattcodes importieren
+    </button>
+    <input
+      type="file"
+      id="importFile"
+      style="display: none;"
+      accept=".csv"
+      onchange="importCodes(event)"
+    />
     <div id="result" class="result"></div>
     <div id="remaining" class="remaining"></div>
   </div>
@@ -124,7 +134,6 @@
           codes.add(code);
         }
         window.discountCodes = Array.from(codes).map(code => ({ code, used: false }));
-        // 保存到LocalStorage
         localStorage.setItem('discountCodes', JSON.stringify(window.discountCodes));
         console.log('Neue Rabattcodes generiert und gespeichert:', window.discountCodes);
       }
@@ -167,7 +176,6 @@
             resultDiv.classList.add('success');
             resultDiv.textContent = 'Success';
             codeEntry.used = true;
-            // 更新LocalStorage
             localStorage.setItem('discountCodes', JSON.stringify(window.discountCodes));
             updateRemaining();
           }
@@ -192,6 +200,42 @@
           console.log('Rabattcodes exportiert als rabattcodes.csv');
         } catch (error) {
           console.error('Fehler beim Exportieren:', error);
+        }
+      }
+
+      // 导入折扣码从CSV
+      function importCodes(event) {
+        try {
+          const file = event.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            const text = e.target.result;
+            const lines = text.split('\n').slice(1); // 跳过标题行
+            const codes = lines
+              .filter(line => line.trim())
+              .map(line => {
+                const [code, used] = line.split(',');
+                return { code: code.replace(/"/g, ''), used: used === 'true' };
+              });
+            if (codes.length > 0) {
+              window.discountCodes = codes;
+              localStorage.setItem('discountCodes', JSON.stringify(window.discountCodes));
+              console.log('Rabattcodes importiert:', window.discountCodes);
+              updateRemaining();
+              document.getElementById('result').style.display = 'block';
+              document.getElementById('result').classList.remove('error');
+              document.getElementById('result').classList.add('success');
+              document.getElementById('result').textContent = 'Rabattcodes erfolgreich importiert';
+            }
+            document.getElementById('importFile').value = '';
+          };
+          reader.readAsText(file);
+        } catch (error) {
+          console.error('Fehler beim Importieren:', error);
+          document.getElementById('result').style.display = 'block';
+          document.getElementById('result').classList.add('error');
+          document.getElementById('result').textContent = 'Fehler beim Importieren der Rabattcodes';
         }
       }
 
