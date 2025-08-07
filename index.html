@@ -2,258 +2,83 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rabattcode-Prüfsystem</title>
+  <title>Rabattcode Prüfung</title>
   <style>
     body {
-      background-color: #f3f4f6;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      margin: 0;
       font-family: Arial, sans-serif;
-    }
-    .container {
-      background-color: white;
-      padding: 2rem;
-      border-radius: 0.5rem;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      max-width: 400px;
-      width: 100%;
-    }
-    h1 {
-      font-size: 1.5rem;
-      font-weight: bold;
-      margin-bottom: 1rem;
       text-align: center;
-    }
-    .input-group {
-      margin-bottom: 1rem;
+      padding: 30px;
     }
     input {
-      width: 100%;
-      padding: 0.5rem;
-      border: 1px solid #d1d5db;
-      border-radius: 0.25rem;
-      font-size: 1rem;
-    }
-    input:focus {
-      outline: none;
-      border-color: #3b82f6;
-      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+      padding: 10px;
+      font-size: 18px;
+      width: 300px;
+      margin-bottom: 20px;
     }
     button {
-      width: 100%;
-      background-color: #3b82f6;
-      color: white;
-      padding: 0.5rem;
-      border: none;
-      border-radius: 0.25rem;
-      font-size: 1rem;
-      cursor: pointer;
-      margin-bottom: 0.5rem;
+      padding: 10px 20px;
+      font-size: 18px;
     }
-    button:hover {
-      background-color: #2563eb;
-    }
-    button.export, button.import {
-      background-color: #6b7280;
-    }
-    button.export:hover, button.import:hover {
-      background-color: #4b5563;
-    }
-    .result {
-      margin-top: 1rem;
-      padding: 0.5rem;
-      text-align: center;
-      border-radius: 0.25rem;
-      display: none;
-    }
-    .result.success {
-      background-color: #d1fae5;
-      color: #065f46;
-    }
-    .result.error {
-      background-color: #fee2e2;
-      color: #991b1b;
-    }
-    .remaining {
-      margin-top: 1rem;
-      text-align: center;
-      font-size: 1rem;
-      color: #374151;
+    #result {
+      margin-top: 20px;
+      font-size: 24px;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Rabattcode-Prüfung</h1>
-    <div class="input-group">
-      <input
-        type="text"
-        id="discountCode"
-        placeholder="Geben Sie den Rabattcode ein"
-      />
-    </div>
-    <button onclick="validateCode()">
-      Rabattcode prüfen
-    </button>
-    <button class="export" onclick="exportCodes()">
-      Rabattcodes exportieren
-    </button>
-    <button class="import" onclick="document.getElementById('importFile').click()">
-      Rabattcodes importieren
-    </button>
-    <input
-      type="file"
-      id="importFile"
-      style="display: none;"
-      accept=".csv"
-      onchange="importCodes(event)"
-    />
-    <div id="result" class="result"></div>
-    <div id="remaining" class="remaining"></div>
-  </div>
+  <h1>Rabattcode Prüfung</h1>
+  <input type="text" id="codeInput" placeholder="Gib den Rabattcode ein" />
+  <br>
+  <button onclick="verifyCode()">Prüfen</button>
+  <div id="result"></div>
 
   <script>
-    // 调试：确认脚本开始
-    console.log('Skript geladen: Rabattcode-Prüfsystem startet...');
+    const API_URL = "https://script.google.com/macros/s/AKfycbz-j-OcT-_4QRTrMo3-pyX78oUb6Diy3WD_n8H-71eteCBa3qwsG-mvVNgsZUrINby7NQ/exec";
 
-    try {
-      // 初始化折扣码
-      window.discountCodes = [];
-      function generateDiscountCodes() {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-        const codes = new Set();
-        while (codes.size < 100) {
-          let code = '';
-          for (let i = 0; i < 12; i++) {
-            code += chars.charAt(Math.floor(Math.random() * chars.length));
-          }
-          codes.add(code);
-        }
-        window.discountCodes = Array.from(codes).map(code => ({ code, used: false }));
-        localStorage.setItem('discountCodes', JSON.stringify(window.discountCodes));
-        console.log('Neue Rabattcodes generiert und gespeichert:', window.discountCodes);
+    let codeData = [];
+
+    async function loadCodes() {
+      try {
+        const response = await fetch(API_URL);
+        codeData = await response.json();
+      } catch (error) {
+        document.getElementById("result").innerHTML = "Fehler beim Laden der Codes";
+        document.getElementById("result").style.color = "red";
+        console.error("Fehler:", error);
       }
-
-      // 加载折扣码
-      function loadDiscountCodes() {
-        const savedCodes = localStorage.getItem('discountCodes');
-        if (savedCodes) {
-          window.discountCodes = JSON.parse(savedCodes);
-          console.log('Rabattcodes aus LocalStorage geladen:', window.discountCodes);
-        } else {
-          generateDiscountCodes();
-        }
-        updateRemaining();
-      }
-
-      // 更新剩余码数量
-      function updateRemaining() {
-        const remaining = window.discountCodes.filter(entry => !entry.used).length;
-        document.getElementById('remaining').textContent = `Verbleibende Rabattcodes: ${remaining}`;
-        console.log(`Verbleibende Rabattcodes: ${remaining}`);
-      }
-
-      // 验证折扣码
-      function validateCode() {
-        try {
-          const input = document.getElementById('discountCode').value.trim().toUpperCase();
-          const resultDiv = document.getElementById('result');
-          const codeEntry = window.discountCodes.find(entry => entry.code === input);
-
-          resultDiv.style.display = 'block';
-          resultDiv.classList.remove('success', 'error');
-          if (!codeEntry) {
-            resultDiv.classList.add('error');
-            resultDiv.textContent = 'Falscher Rabattcode';
-          } else if (codeEntry.used) {
-            resultDiv.classList.add('error');
-            resultDiv.textContent = 'Der Rabattcode wurde bereits verwendet';
-          } else {
-            resultDiv.classList.add('success');
-            resultDiv.textContent = 'Success';
-            codeEntry.used = true;
-            localStorage.setItem('discountCodes', JSON.stringify(window.discountCodes));
-            updateRemaining();
-          }
-          document.getElementById('discountCode').value = '';
-        } catch (error) {
-          console.error('Fehler bei der Validierung:', error);
-        }
-      }
-
-      // 导出折扣码为CSV
-      function exportCodes() {
-        try {
-          const csvContent = "data:text/csv;charset=utf-8,Rabattcode,Verwendet\n" +
-            window.discountCodes.map(entry => `"${entry.code}",${entry.used}`).join("\n");
-          const encodedUri = encodeURI(csvContent);
-          const link = document.createElement("a");
-          link.setAttribute("href", encodedUri);
-          link.setAttribute("download", "rabattcodes.csv");
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          console.log('Rabattcodes exportiert als rabattcodes.csv');
-        } catch (error) {
-          console.error('Fehler beim Exportieren:', error);
-        }
-      }
-
-      // 导入折扣码从CSV
-      function importCodes(event) {
-        try {
-          const file = event.target.files[0];
-          if (!file) return;
-          const reader = new FileReader();
-          reader.onload = function(e) {
-            const text = e.target.result;
-            const lines = text.split('\n').slice(1); // 跳过标题行
-            const codes = lines
-              .filter(line => line.trim())
-              .map(line => {
-                const [code, used] = line.split(',');
-                return { code: code.replace(/"/g, ''), used: used === 'true' };
-              });
-            if (codes.length > 0) {
-              window.discountCodes = codes;
-              localStorage.setItem('discountCodes', JSON.stringify(window.discountCodes));
-              console.log('Rabattcodes importiert:', window.discountCodes);
-              updateRemaining();
-              document.getElementById('result').style.display = 'block';
-              document.getElementById('result').classList.remove('error');
-              document.getElementById('result').classList.add('success');
-              document.getElementById('result').textContent = 'Rabattcodes erfolgreich importiert';
-            }
-            document.getElementById('importFile').value = '';
-          };
-          reader.readAsText(file);
-        } catch (error) {
-          console.error('Fehler beim Importieren:', error);
-          document.getElementById('result').style.display = 'block';
-          document.getElementById('result').classList.add('error');
-          document.getElementById('result').textContent = 'Fehler beim Importieren der Rabattcodes';
-        }
-      }
-
-      // 初始化：加载或生成折扣码
-      loadDiscountCodes();
-
-      // 支持回车键验证
-      document.getElementById('discountCode').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-          validateCode();
-        }
-      });
-
-      // 调试：确认初始化完成
-      console.log('Initialisierung abgeschlossen. Testen Sie mit console.log(window.discountCodes);');
-    } catch (error) {
-      console.error('Skriptfehler:', error);
     }
+
+    async function verifyCode() {
+      const input = document.getElementById("codeInput").value.trim();
+      const resultEl = document.getElementById("result");
+
+      const codeObj = codeData.find(c => c.Code === input);
+
+      if (!codeObj) {
+        resultEl.innerText = "Falscher Rabattcode";
+        resultEl.style.color = "red";
+        return;
+      }
+
+      if (codeObj.Verwendet === "TRUE" || codeObj.Verwendet === true) {
+        resultEl.innerText = "Der Rabattcode wurde bereits verwendet";
+        resultEl.style.color = "orange";
+        return;
+      }
+
+      resultEl.innerText = "Success!";
+      resultEl.style.color = "green";
+
+      try {
+        await fetch(API_URL + `?update=${input}`, { method: "POST" });
+        codeObj.Verwendet = true;
+      } catch (error) {
+        console.error("Fehler beim Aktualisieren des Codes:", error);
+      }
+    }
+
+    loadCodes();
   </script>
 </body>
 </html>
